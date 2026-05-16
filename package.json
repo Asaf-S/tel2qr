@@ -7,6 +7,7 @@
     "dev": "esbuild src/content.ts --bundle --outfile=dist/content.js --platform=browser --target=chrome100 --watch",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && playwright test",
+    "test:debug": "npm run build && node --inspect-brk ./node_modules/.bin/playwright test --timeout=0",
     "package": "npm run build && mkdir -p releases && zip -r releases/tel2qr-v$(node -p \"require('./package.json').version\").zip manifest.json dist/ icons/"
   },
   "repository": {

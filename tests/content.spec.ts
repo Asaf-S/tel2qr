@@ -18,6 +18,7 @@ test("close button removes the modal", async ({ newPage }) => {
   await expect(page.locator("#tel2qr-modal")).toBeVisible();
   await page.click(".tel2qr-close");
   await expect(page.locator("#tel2qr-modal")).not.toBeAttached();
+  debugger;
 });
 
 test("Escape key removes the modal", async ({ newPage }) => {
