@@ -18,7 +18,6 @@ test("close button removes the modal", async ({ newPage }) => {
   await expect(page.locator("#tel2qr-modal")).toBeVisible();
   await page.click(".tel2qr-close");
   await expect(page.locator("#tel2qr-modal")).not.toBeAttached();
-  debugger;
 });
 
 test("Escape key removes the modal", async ({ newPage }) => {
@@ -58,6 +57,46 @@ test("reopening a modal replaces the previous one", async ({ newPage }) => {
   );
   await expect(page.locator(".tel2qr-number")).toHaveText("+15550200");
   await expect(page.locator("#tel2qr-modal")).toHaveCount(1);
+});
+
+test("card is centered in the viewport regardless of its size", async ({
+  newPage,
+}) => {
+  const page = await newPage(TEL_PAGE);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.click("a");
+  await expect(page.locator("#tel2qr-modal")).toBeVisible();
+
+  const { cardCenterX, cardCenterY, viewportCenterX, viewportCenterY } =
+    await page.evaluate(() => {
+      const card = document.querySelector(".tel2qr-card")!;
+      const { left, right, top, bottom } = card.getBoundingClientRect();
+      return {
+        cardCenterX: (left + right) / 2,
+        cardCenterY: (top + bottom) / 2,
+        viewportCenterX: window.innerWidth / 2,
+        viewportCenterY: window.innerHeight / 2,
+      };
+    });
+
+  expect(Math.abs(cardCenterX - viewportCenterX)).toBeLessThan(2);
+  expect(Math.abs(cardCenterY - viewportCenterY)).toBeLessThan(2);
+
+  await page.setViewportSize({ width: 640, height: 400 });
+
+  const resized = await page.evaluate(() => {
+    const card = document.querySelector(".tel2qr-card")!;
+    const { left, right, top, bottom } = card.getBoundingClientRect();
+    return {
+      cardCenterX: (left + right) / 2,
+      cardCenterY: (top + bottom) / 2,
+      viewportCenterX: window.innerWidth / 2,
+      viewportCenterY: window.innerHeight / 2,
+    };
+  });
+
+  expect(Math.abs(resized.cardCenterX - resized.viewportCenterX)).toBeLessThan(2);
+  expect(Math.abs(resized.cardCenterY - resized.viewportCenterY)).toBeLessThan(2);
 });
 
 test("styles are injected only once across multiple modal opens", async ({
