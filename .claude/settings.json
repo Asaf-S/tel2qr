@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(mkdir -p /Users/asaf/CodeLocal/MaiTaiTech/tel2qr/src /Users/asaf/CodeLocal/MaiTaiTech/tel2qr/dist /Users/asaf/CodeLocal/MaiTaiTech/tel2qr/icons)",
+      "Bash(npm run *)"
+    ],
+    "additionalDirectories": [
+      "/Users/asaf/CodeLocal/MaiTaiTech/tel2qr"
+    ]
+  }
+}

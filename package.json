@@ -1,0 +1,27 @@
+{
+  "name": "tel2qr",
+  "version": "1.0.0",
+  "description": "Chrome extension: click a tel: link to get a scannable QR code",
+  "scripts": {
+    "build": "esbuild src/content.js --bundle --outfile=dist/content.js --platform=browser --target=chrome100 --minify",
+    "dev": "esbuild src/content.js --bundle --outfile=dist/content.js --platform=browser --target=chrome100 --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Asaf-S/tel2qr.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Asaf-S/tel2qr/issues"
+  },
+  "homepage": "https://github.com/Asaf-S/tel2qr#readme",
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0"
+  }
+}
