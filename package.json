@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "Chrome extension: click a tel: link to get a scannable QR code",
   "scripts": {
-    "build": "esbuild src/content.js --bundle --outfile=dist/content.js --platform=browser --target=chrome100 --minify",
-    "dev": "esbuild src/content.js --bundle --outfile=dist/content.js --platform=browser --target=chrome100 --watch"
+    "build": "esbuild src/content.ts --bundle --outfile=dist/content.js --platform=browser --target=chrome100 --minify",
+    "dev": "esbuild src/content.ts --bundle --outfile=dist/content.js --platform=browser --target=chrome100 --watch",
+    "typecheck": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -22,6 +23,9 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
-    "esbuild": "^0.28.0"
+    "@types/chrome": "^0.1.42",
+    "@types/qrcode": "^1.5.6",
+    "esbuild": "^0.28.0",
+    "typescript": "^6.0.3"
   }
 }

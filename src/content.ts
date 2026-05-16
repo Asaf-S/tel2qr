@@ -1,15 +1,16 @@
 import QRCode from "qrcode";
 
 const MODAL_ID = "tel2qr-modal";
+const STYLES_ID = "tel2qr-styles";
 
-function removeModal() {
+function removeModal(): void {
   document.getElementById(MODAL_ID)?.remove();
 }
 
-function injectStyles() {
-  if (document.getElementById("tel2qr-styles")) return;
+function injectStyles(): void {
+  if (document.getElementById(STYLES_ID)) return;
   const style = document.createElement("style");
-  style.id = "tel2qr-styles";
+  style.id = STYLES_ID;
   style.textContent = `
     #tel2qr-modal {
       position: fixed;
@@ -77,7 +78,7 @@ function injectStyles() {
   document.head.appendChild(style);
 }
 
-async function showModal(telHref) {
+async function showModal(telHref: string): Promise<void> {
   removeModal();
   injectStyles();
 
@@ -85,7 +86,7 @@ async function showModal(telHref) {
   overlay.id = MODAL_ID;
   overlay.setAttribute("role", "dialog");
   overlay.setAttribute("aria-modal", "true");
-  overlay.setAttribute("aria-label", "QR code for " + telHref);
+  overlay.setAttribute("aria-label", `QR code for ${telHref}`);
 
   const card = document.createElement("div");
   card.className = "tel2qr-card";
@@ -96,7 +97,6 @@ async function showModal(telHref) {
 
   const number = document.createElement("p");
   number.className = "tel2qr-number";
-  // Show the human-readable number without the "tel:" scheme
   number.textContent = decodeURIComponent(telHref.replace(/^tel:/i, ""));
 
   const canvas = document.createElement("canvas");
@@ -120,27 +120,27 @@ async function showModal(telHref) {
     color: { dark: "#111111", light: "#ffffff" },
   });
 
-  // Close on backdrop click (outside the card)
-  overlay.addEventListener("click", (e) => {
+  overlay.addEventListener("click", (e: MouseEvent) => {
     if (e.target === overlay) removeModal();
   });
 }
 
 document.addEventListener(
   "click",
-  (e) => {
-    const link = e.target.closest("a[href]");
+  (e: MouseEvent) => {
+    const target = e.target as Element | null;
+    const link = target?.closest<HTMLAnchorElement>("a[href]");
     if (!link) return;
     const href = link.getAttribute("href");
     if (!href || !/^tel:/i.test(href)) return;
 
     e.preventDefault();
     e.stopPropagation();
-    showModal(href);
+    void showModal(href);
   },
-  true // capture phase so we run before the page's own handlers
+  true
 );
 
-document.addEventListener("keydown", (e) => {
+document.addEventListener("keydown", (e: KeyboardEvent) => {
   if (e.key === "Escape") removeModal();
 });
