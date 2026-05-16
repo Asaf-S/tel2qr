@@ -5,7 +5,9 @@
   "scripts": {
     "build": "esbuild src/content.ts --bundle --outfile=dist/content.js --platform=browser --target=chrome100 --minify",
     "dev": "esbuild src/content.ts --bundle --outfile=dist/content.js --platform=browser --target=chrome100 --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && playwright test",
+    "package": "npm run build && mkdir -p releases && zip -r releases/tel2qr-v$(node -p \"require('./package.json').version\").zip manifest.json dist/ icons/"
   },
   "repository": {
     "type": "git",
@@ -23,6 +25,7 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/chrome": "^0.1.42",
     "@types/qrcode": "^1.5.6",
     "esbuild": "^0.28.0",
