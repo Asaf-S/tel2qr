@@ -59,20 +59,34 @@ function injectStyles(): void {
       margin: 0;
       text-align: center;
     }
-    #tel2qr-modal .tel2qr-close {
-      margin-top: 4px;
-      padding: 8px 24px;
+    #tel2qr-modal .tel2qr-actions {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+    #tel2qr-modal .tel2qr-btn {
+      flex: 1;
+      padding: 8px 12px;
       border: none;
       border-radius: 8px;
-      background: #f0f0f0;
-      color: #333;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.15s;
     }
-    #tel2qr-modal .tel2qr-close:hover {
+    #tel2qr-modal .tel2qr-btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    #tel2qr-modal .tel2qr-btn-secondary:hover {
       background: #e0e0e0;
+    }
+    #tel2qr-modal .tel2qr-btn-primary {
+      background: #1a73e8;
+      color: #fff;
+    }
+    #tel2qr-modal .tel2qr-btn-primary:hover {
+      background: #1557b0;
     }
   `;
   document.head.appendChild(style);
@@ -105,12 +119,25 @@ async function showModal(telHref: string): Promise<void> {
   hint.className = "tel2qr-hint";
   hint.textContent = "Point your phone camera at this QR code";
 
+  const actions = document.createElement("div");
+  actions.className = "tel2qr-actions";
+
+  // "Open in app" lets Chrome handle the tel: link natively (phone app, FaceTime, etc.)
+  const openBtn = document.createElement("button");
+  openBtn.className = "tel2qr-btn tel2qr-btn-secondary";
+  openBtn.textContent = "Open in app";
+  openBtn.addEventListener("click", () => {
+    removeModal();
+    window.location.href = telHref;
+  });
+
   const closeBtn = document.createElement("button");
-  closeBtn.className = "tel2qr-close";
+  closeBtn.className = "tel2qr-btn tel2qr-btn-primary tel2qr-close";
   closeBtn.textContent = "Close";
   closeBtn.addEventListener("click", removeModal);
 
-  card.append(title, number, canvas, hint, closeBtn);
+  actions.append(openBtn, closeBtn);
+  card.append(title, number, canvas, hint, actions);
   overlay.appendChild(card);
   document.body.appendChild(overlay);
 
@@ -135,7 +162,7 @@ document.addEventListener(
     if (!href || !/^tel:/i.test(href)) return;
 
     e.preventDefault();
-    e.stopPropagation();
+    e.stopImmediatePropagation();
     void showModal(href);
   },
   true

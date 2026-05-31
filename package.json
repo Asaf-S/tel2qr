@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Chrome extension: click a tel: link to get a scannable QR code",
   "scripts": {
-    "build": "esbuild src/content.ts --bundle --outfile=dist/content.js --platform=browser --target=chrome100 --minify",
-    "dev": "esbuild src/content.ts --bundle --outfile=dist/content.js --platform=browser --target=chrome100 --watch",
+    "build": "esbuild src/content.ts src/background.ts --bundle --outdir=dist --platform=browser --target=chrome100 --minify",
+    "dev": "esbuild src/content.ts src/background.ts --bundle --outdir=dist --platform=browser --target=chrome100 --watch",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && playwright test",
     "test:debug": "npm run build && node --inspect-brk ./node_modules/.bin/playwright test --timeout=0",

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tel2QR</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f7;
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 36px 32px;
+      box-shadow: 0 8px 48px rgba(0,0,0,0.12);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      max-width: 340px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .logo {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #1a73e8;
+    }
+
+    /* ── QR mode ── */
+    .label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #888;
+    }
+
+    .number {
+      font-size: 22px;
+      font-weight: 700;
+      color: #111;
+      word-break: break-all;
+    }
+
+    canvas {
+      border-radius: 10px;
+    }
+
+    .hint {
+      font-size: 13px;
+      color: #888;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 11px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-copy {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .btn-copy:hover { background: #e0e0e0; }
+
+    /* ── Setup mode ── */
+    .setup-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #111;
+    }
+
+    .setup-desc {
+      font-size: 14px;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    .btn-register {
+      background: #1a73e8;
+      color: #fff;
+    }
+    .btn-register:hover { background: #1557b0; }
+
+    .confirm-msg {
+      font-size: 13px;
+      color: #1a73e8;
+      display: none;
+    }
+    .confirm-msg.visible { display: block; }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <!-- Populated by JS -->
+  </div>
+
+  <script>
+    const card = document.getElementById('card');
+    const params = new URLSearchParams(location.search);
+    const rawTel = params.get('tel');
+
+    if (rawTel) {
+      // ── QR mode ──────────────────────────────────────────
+      const telHref = decodeURIComponent(rawTel);
+      const number  = telHref.replace(/^tel:/i, '');
+
+      const logo   = el('p', 'logo', 'Tel2QR');
+      const label  = el('p', 'label', 'Scan to call');
+      const numEl  = el('p', 'number', number);
+      const canvas = document.createElement('canvas');
+      const hint   = el('p', 'hint', 'Point your phone camera at this QR code');
+      const copyBtn = btn('btn-copy', 'Copy number', () => {
+        navigator.clipboard.writeText(number).then(() => {
+          copyBtn.textContent = 'Copied!';
+          setTimeout(() => { copyBtn.textContent = 'Copy number'; }, 2000);
+        });
+      });
+
+      card.append(logo, label, numEl, canvas, hint, copyBtn);
+
+      QRCode.toCanvas(canvas, telHref, {
+        width: 200,
+        margin: 2,
+        color: { dark: '#111111', light: '#ffffff' },
+      });
+
+    } else {
+      // ── Setup mode ────────────────────────────────────────
+      const logo      = el('p', 'logo', 'Tel2QR');
+      const title     = el('p', 'setup-title', 'Open tel: links as QR codes');
+      const desc      = el('p', 'setup-desc',
+        'Register Tel2QR so Chrome routes phone links here instead of opening a desktop app.');
+      const confirmMsg = el('p', 'confirm-msg',
+        '✓ Chrome will ask you to confirm — click Allow to finish setup.');
+
+      const regBtn = btn('btn-register', 'Register Tel2QR', () => {
+        navigator.registerProtocolHandler(
+          'tel',
+          location.origin + location.pathname + '?tel=%s',
+          'Tel2QR'
+        );
+        confirmMsg.classList.add('visible');
+        regBtn.textContent = 'Registered ✓';
+        regBtn.disabled = true;
+      });
+
+      card.append(logo, title, desc, regBtn, confirmMsg);
+    }
+
+    // ── Helpers ───────────────────────────────────────────
+    function el(tag, cls, text) {
+      const e = document.createElement(tag);
+      e.className = cls;
+      e.textContent = text;
+      return e;
+    }
+
+    function btn(cls, text, onClick) {
+      const b = document.createElement('button');
+      b.className = 'btn ' + cls;
+      b.textContent = text;
+      b.addEventListener('click', onClick);
+      return b;
+    }
+  </script>
+</body>
+</html>
