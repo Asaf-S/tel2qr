@@ -3,6 +3,15 @@ import QRCode from "qrcode";
 const MODAL_ID = "tel2qr-modal";
 const STYLES_ID = "tel2qr-styles";
 
+// Cache the method preference so the click handler is synchronous.
+let method = "overlay";
+chrome.storage.sync.get({ method: "overlay" }, (r) => { method = r.method as string; });
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.method) method = changes.method.newValue as string;
+});
+
+// ── Overlay modal ─────────────────────────────────────────────────────────────
+
 function removeModal(): void {
   document.getElementById(MODAL_ID)?.remove();
 }
@@ -78,16 +87,12 @@ function injectStyles(): void {
       background: #f0f0f0;
       color: #333;
     }
-    #tel2qr-modal .tel2qr-btn-secondary:hover {
-      background: #e0e0e0;
-    }
+    #tel2qr-modal .tel2qr-btn-secondary:hover { background: #e0e0e0; }
     #tel2qr-modal .tel2qr-btn-primary {
       background: #1a73e8;
       color: #fff;
     }
-    #tel2qr-modal .tel2qr-btn-primary:hover {
-      background: #1557b0;
-    }
+    #tel2qr-modal .tel2qr-btn-primary:hover { background: #1557b0; }
   `;
   document.head.appendChild(style);
 }
@@ -122,7 +127,6 @@ async function showModal(telHref: string): Promise<void> {
   const actions = document.createElement("div");
   actions.className = "tel2qr-actions";
 
-  // "Open in app" lets Chrome handle the tel: link natively (phone app, FaceTime, etc.)
   const openBtn = document.createElement("button");
   openBtn.className = "tel2qr-btn tel2qr-btn-secondary";
   openBtn.textContent = "Open in app";
@@ -152,6 +156,8 @@ async function showModal(telHref: string): Promise<void> {
   });
 }
 
+// ── Click handler ─────────────────────────────────────────────────────────────
+
 document.addEventListener(
   "click",
   (e: MouseEvent) => {
@@ -163,7 +169,17 @@ document.addEventListener(
 
     e.preventDefault();
     e.stopImmediatePropagation();
-    void showModal(href);
+
+    if (method === "extension-popup") {
+      void chrome.runtime.sendMessage({ type: "open-popup", tel: href });
+    } else if (method === "github-pages") {
+      window.open(
+        `https://asaf-s.github.io/tel2qr/?tel=${encodeURIComponent(href)}`,
+        "_blank"
+      );
+    } else {
+      void showModal(href); // default: overlay
+    }
   },
   true
 );

@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "Chrome extension: click a tel: link to get a scannable QR code",
   "scripts": {
-    "build": "esbuild src/content.ts src/background.ts --bundle --outdir=dist --platform=browser --target=chrome100 --minify",
-    "dev": "esbuild src/content.ts src/background.ts --bundle --outdir=dist --platform=browser --target=chrome100 --watch",
+    "build": "esbuild src/content.ts src/background.ts src/popup.ts src/handler.ts --bundle --outdir=dist --platform=browser --target=chrome100 --minify",
+    "dev": "esbuild src/content.ts src/background.ts src/popup.ts src/handler.ts --bundle --outdir=dist --platform=browser --target=chrome100 --watch",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && playwright test",
     "test:debug": "npm run build && node --inspect-brk ./node_modules/.bin/playwright test --timeout=0",
-    "package": "npm run build && mkdir -p releases && zip -r releases/tel2qr-v$(node -p \"require('./package.json').version\").zip manifest.json dist/ icons/",
+    "package": "npm run build && mkdir -p releases && zip -r releases/tel2qr-v$(node -p \"require('./package.json').version\").zip manifest.json dist/ icons/ popup.html handler.html",
     "upload": "dotenv -e .env -- chrome-webstore-upload upload --source releases/tel2qr-v$(node -p \"require('./package.json').version\").zip",
     "release": "npm run package && npm run upload"
   },

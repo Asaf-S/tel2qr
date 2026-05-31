@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tel2QR</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 280px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #fff;
+      padding: 20px 18px 16px;
+      color: #111;
+    }
+
+    .brand {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #1a73e8;
+      margin-bottom: 12px;
+    }
+
+    .label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    label {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    label:hover { background: #f5f5f5; }
+
+    input[type="radio"] {
+      margin-top: 2px;
+      flex-shrink: 0;
+      accent-color: #1a73e8;
+    }
+
+    .option-text { display: flex; flex-direction: column; gap: 2px; }
+    .option-title { font-size: 13px; font-weight: 600; }
+    .option-desc  { font-size: 11px; color: #888; line-height: 1.4; }
+
+    .saved {
+      font-size: 11px;
+      color: #1a73e8;
+      text-align: right;
+      margin-top: 10px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .saved.visible { opacity: 1; }
+  </style>
+</head>
+<body>
+  <p class="brand">Tel2QR</p>
+  <p class="label">When a tel: link is clicked, open it as:</p>
+
+  <div class="options">
+    <label>
+      <input type="radio" name="method" value="overlay">
+      <div class="option-text">
+        <span class="option-title">Overlay</span>
+        <span class="option-desc">QR code appears over the current page</span>
+      </div>
+    </label>
+
+    <label>
+      <input type="radio" name="method" value="extension-popup">
+      <div class="option-text">
+        <span class="option-title">Extension popup</span>
+        <span class="option-desc">QR code opens in a small floating window</span>
+      </div>
+    </label>
+
+    <label>
+      <input type="radio" name="method" value="github-pages">
+      <div class="option-text">
+        <span class="option-title">Web page</span>
+        <span class="option-desc">Opens tel2qr on GitHub Pages in a new tab</span>
+      </div>
+    </label>
+  </div>
+
+  <p class="saved" id="saved">✓ Saved</p>
+
+  <script src="dist/popup.js"></script>
+</body>
+</html>
