@@ -6,6 +6,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
   if (radio) radio.checked = true;
 
+  document.getElementById("spinner")!.style.display = "none";
+  document.getElementById("options")!.style.display = "flex";
+
   const savedEl = document.getElementById("saved")!;
   let hideTimer: ReturnType<typeof setTimeout>;
 

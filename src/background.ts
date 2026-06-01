@@ -1,6 +1,8 @@
-chrome.runtime.onMessage.addListener((msg: { type: string; tel: string }) => {
+chrome.runtime.onMessage.addListener((msg: { type: string; tel: string; url: string }) => {
   if (msg.type === "open-popup") {
     void handleOpenPopup(msg.tel);
+  } else if (msg.type === "open-tab") {
+    void chrome.tabs.create({ url: msg.url });
   }
 });
 

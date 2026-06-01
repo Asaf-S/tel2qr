@@ -65,13 +65,26 @@
       transition: opacity 0.2s;
     }
     .saved.visible { opacity: 1; }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #e8e8e8;
+      border-top-color: #1a73e8;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 18px auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <p class="brand">Tel2QR</p>
   <p class="label">When a tel: link is clicked, open it as:</p>
 
-  <div class="options">
+  <div id="spinner" class="spinner"></div>
+
+  <div class="options" id="options" style="display:none">
     <label>
       <input type="radio" name="method" value="overlay">
       <div class="option-text">
@@ -89,13 +102,13 @@
     </label>
 
     <label>
-      <input type="radio" name="method" value="github-pages">
+      <input type="radio" name="method" value="new-tab">
       <div class="option-text">
-        <span class="option-title">Web page</span>
-        <span class="option-desc">Opens tel2qr on GitHub Pages in a new tab</span>
+        <span class="option-title">New tab</span>
+        <span class="option-desc">Opens a self-contained QR page in a new tab</span>
       </div>
     </label>
-  </div>
+  </div><!-- #options -->
 
   <p class="saved" id="saved">✓ Saved</p>
 

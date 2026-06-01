@@ -3,11 +3,10 @@ import QRCode from "qrcode";
 const MODAL_ID = "tel2qr-modal";
 const STYLES_ID = "tel2qr-styles";
 
-// Cache the method preference so the click handler is synchronous.
 let method = "overlay";
 chrome.storage.sync.get({ method: "overlay" }, (r) => { method = r.method as string; });
-chrome.storage.onChanged.addListener((changes) => {
-  if (changes.method) method = changes.method.newValue as string;
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "sync" && changes.method) method = changes.method.newValue as string;
 });
 
 // ── Overlay modal ─────────────────────────────────────────────────────────────
@@ -156,6 +155,67 @@ async function showModal(telHref: string): Promise<void> {
   });
 }
 
+// ── New-tab: data URL page ────────────────────────────────────────────────────
+
+function escHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+async function openInNewTab(href: string): Promise<void> {
+  const number = decodeURIComponent(href.replace(/^tel:/i, ""));
+  const qrSrc = await QRCode.toDataURL(href, {
+    width: 200,
+    margin: 2,
+    color: { dark: "#111111", light: "#ffffff" },
+  });
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tel2QR — ${escHtml(number)}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;
+     background:#f5f5f7;font-family:system-ui,sans-serif;padding:24px}
+.card{background:#fff;border-radius:20px;padding:32px 28px 24px;
+      box-shadow:0 8px 40px rgba(0,0,0,.12);display:flex;flex-direction:column;
+      align-items:center;gap:14px;max-width:300px;width:100%;text-align:center}
+.lbl{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#888}
+.num{font-size:22px;font-weight:700;color:#111;word-break:break-all}
+.hint{font-size:12px;color:#888}
+img{border-radius:8px}
+button{width:100%;padding:9px;border:none;border-radius:8px;background:#f0f0f0;
+       color:#333;font-size:13px;font-weight:600;cursor:pointer}
+button:hover{background:#e0e0e0}
+</style>
+</head>
+<body>
+<div class="card">
+  <p class="lbl">Scan to call</p>
+  <p class="num" id="n">${escHtml(number)}</p>
+  <img src="${qrSrc}" width="200" height="200" alt="QR code">
+  <p class="hint">Point your phone camera at this QR code</p>
+  <button id="c">Copy number</button>
+</div>
+<script>
+document.getElementById('c').onclick=function(){
+  var n=document.getElementById('n').textContent,b=this;
+  navigator.clipboard.writeText(n)
+    .then(function(){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy number'},2e3)})
+    .catch(function(){});
+};
+</script>
+</body>
+</html>`;
+
+  void chrome.runtime.sendMessage({
+    type: "open-tab",
+    url: `data:text/html;charset=utf-8,${encodeURIComponent(html)}`,
+  });
+}
+
 // ── Click handler ─────────────────────────────────────────────────────────────
 
 document.addEventListener(
@@ -172,13 +232,10 @@ document.addEventListener(
 
     if (method === "extension-popup") {
       void chrome.runtime.sendMessage({ type: "open-popup", tel: href });
-    } else if (method === "github-pages") {
-      window.open(
-        `https://asaf-s.github.io/tel2qr/?tel=${encodeURIComponent(href)}`,
-        "_blank"
-      );
+    } else if (method === "new-tab" || method === "github-pages") {
+      void openInNewTab(href);
     } else {
-      void showModal(href); // default: overlay
+      void showModal(href);
     }
   },
   true
