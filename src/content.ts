@@ -9,6 +9,13 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "sync" && changes.method) method = changes.method.newValue as string;
 });
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function toWhatsAppUrl(telHref: string): string {
+  const digits = telHref.replace(/^tel:/i, "").replace(/\D/g, "");
+  return `https://wa.me/${digits}`;
+}
+
 // ── Overlay modal ─────────────────────────────────────────────────────────────
 
 function removeModal(): void {
@@ -92,6 +99,40 @@ function injectStyles(): void {
       color: #fff;
     }
     #tel2qr-modal .tel2qr-btn-primary:hover { background: #1557b0; }
+    #tel2qr-modal .tel2qr-tabs {
+      display: flex;
+      width: 100%;
+      gap: 4px;
+      background: #f0f0f0;
+      border-radius: 8px;
+      padding: 3px;
+    }
+    #tel2qr-modal .tel2qr-tab {
+      flex: 1;
+      padding: 5px 8px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: #666;
+      transition: all 0.15s;
+    }
+    #tel2qr-modal .tel2qr-tab.active {
+      background: #fff;
+      color: #111;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    #tel2qr-modal .tel2qr-tab:hover:not(.active) { background: rgba(0,0,0,0.05); }
+    #tel2qr-modal .tel2qr-pane {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+    }
+    #tel2qr-modal .tel2qr-pane.hidden { display: none; }
   `;
   document.head.appendChild(style);
 }
@@ -99,6 +140,7 @@ function injectStyles(): void {
 async function showModal(telHref: string): Promise<void> {
   removeModal();
   injectStyles();
+  const waUrl = toWhatsAppUrl(telHref);
 
   const overlay = document.createElement("div");
   overlay.id = MODAL_ID;
@@ -109,50 +151,83 @@ async function showModal(telHref: string): Promise<void> {
   const card = document.createElement("div");
   card.className = "tel2qr-card";
 
-  const title = document.createElement("p");
-  title.className = "tel2qr-title";
-  title.textContent = "Scan to call";
-
   const number = document.createElement("p");
   number.className = "tel2qr-number";
   number.textContent = decodeURIComponent(telHref.replace(/^tel:/i, ""));
 
-  const canvas = document.createElement("canvas");
+  // Tabs
+  const tabs = document.createElement("div");
+  tabs.className = "tel2qr-tabs";
+  const callTab = document.createElement("button");
+  callTab.className = "tel2qr-tab active";
+  callTab.textContent = "Call";
+  const waTab = document.createElement("button");
+  waTab.className = "tel2qr-tab";
+  waTab.textContent = "WhatsApp";
+  tabs.append(callTab, waTab);
 
-  const hint = document.createElement("p");
-  hint.className = "tel2qr-hint";
-  hint.textContent = "Point your phone camera at this QR code";
-
-  const actions = document.createElement("div");
-  actions.className = "tel2qr-actions";
-
+  // Call pane
+  const callPane = document.createElement("div");
+  callPane.className = "tel2qr-pane";
+  const callCanvas = document.createElement("canvas");
+  const callHint = document.createElement("p");
+  callHint.className = "tel2qr-hint";
+  callHint.textContent = "Point your phone camera at this QR code";
+  const callActions = document.createElement("div");
+  callActions.className = "tel2qr-actions";
   const openBtn = document.createElement("button");
   openBtn.className = "tel2qr-btn tel2qr-btn-secondary";
   openBtn.textContent = "Open in app";
-  openBtn.addEventListener("click", () => {
-    removeModal();
-    window.location.href = telHref;
+  openBtn.addEventListener("click", () => { removeModal(); window.location.href = telHref; });
+  const closeBtn1 = document.createElement("button");
+  closeBtn1.className = "tel2qr-btn tel2qr-btn-primary";
+  closeBtn1.textContent = "Close";
+  closeBtn1.addEventListener("click", removeModal);
+  callActions.append(openBtn, closeBtn1);
+  callPane.append(callCanvas, callHint, callActions);
+
+  // WhatsApp pane
+  const waPane = document.createElement("div");
+  waPane.className = "tel2qr-pane hidden";
+  const waCanvas = document.createElement("canvas");
+  const waHint = document.createElement("p");
+  waHint.className = "tel2qr-hint";
+  waHint.textContent = "Scan to open WhatsApp and call";
+  const waActions = document.createElement("div");
+  waActions.className = "tel2qr-actions";
+  const waOpenBtn = document.createElement("button");
+  waOpenBtn.className = "tel2qr-btn tel2qr-btn-secondary";
+  waOpenBtn.textContent = "Open WhatsApp";
+  waOpenBtn.addEventListener("click", () => { removeModal(); window.open(waUrl, "_blank"); });
+  const closeBtn2 = document.createElement("button");
+  closeBtn2.className = "tel2qr-btn tel2qr-btn-primary";
+  closeBtn2.textContent = "Close";
+  closeBtn2.addEventListener("click", removeModal);
+  waActions.append(waOpenBtn, closeBtn2);
+  waPane.append(waCanvas, waHint, waActions);
+
+  // Tab switching
+  callTab.addEventListener("click", () => {
+    callTab.classList.add("active"); waTab.classList.remove("active");
+    callPane.classList.remove("hidden"); waPane.classList.add("hidden");
+  });
+  waTab.addEventListener("click", () => {
+    waTab.classList.add("active"); callTab.classList.remove("active");
+    waPane.classList.remove("hidden"); callPane.classList.add("hidden");
   });
 
-  const closeBtn = document.createElement("button");
-  closeBtn.className = "tel2qr-btn tel2qr-btn-primary tel2qr-close";
-  closeBtn.textContent = "Close";
-  closeBtn.addEventListener("click", removeModal);
-
-  actions.append(openBtn, closeBtn);
-  card.append(title, number, canvas, hint, actions);
+  card.append(number, tabs, callPane, waPane);
   overlay.appendChild(card);
   document.body.appendChild(overlay);
-
-  await QRCode.toCanvas(canvas, telHref, {
-    width: 200,
-    margin: 2,
-    color: { dark: "#111111", light: "#ffffff" },
-  });
 
   overlay.addEventListener("click", (e: MouseEvent) => {
     if (e.target === overlay) removeModal();
   });
+
+  await Promise.all([
+    QRCode.toCanvas(callCanvas, telHref, { width: 200, margin: 2, color: { dark: "#111111", light: "#ffffff" } }),
+    QRCode.toCanvas(waCanvas, waUrl, { width: 200, margin: 2, color: { dark: "#128C7E", light: "#ffffff" } }),
+  ]);
 }
 
 // ── New-tab: data URL page ────────────────────────────────────────────────────
@@ -163,11 +238,12 @@ function escHtml(s: string): string {
 
 async function openInNewTab(href: string): Promise<void> {
   const number = decodeURIComponent(href.replace(/^tel:/i, ""));
-  const qrSrc = await QRCode.toDataURL(href, {
-    width: 200,
-    margin: 2,
-    color: { dark: "#111111", light: "#ffffff" },
-  });
+  const waUrl = toWhatsAppUrl(href);
+
+  const [callQrSrc, waQrSrc] = await Promise.all([
+    QRCode.toDataURL(href, { width: 200, margin: 2, color: { dark: "#111111", light: "#ffffff" } }),
+    QRCode.toDataURL(waUrl, { width: 200, margin: 2, color: { dark: "#128C7E", light: "#ffffff" } }),
+  ]);
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -182,8 +258,12 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;
 .card{background:#fff;border-radius:20px;padding:32px 28px 24px;
       box-shadow:0 8px 40px rgba(0,0,0,.12);display:flex;flex-direction:column;
       align-items:center;gap:14px;max-width:300px;width:100%;text-align:center}
-.lbl{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#888}
 .num{font-size:22px;font-weight:700;color:#111;word-break:break-all}
+.tabs{display:flex;width:100%;gap:4px;background:#f0f0f0;border-radius:8px;padding:3px}
+.tab{flex:1;padding:6px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#666;transition:all .15s}
+.tab.active{background:#fff;color:#111;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.pane{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
+.pane.hidden{display:none}
 .hint{font-size:12px;color:#888}
 img{border-radius:8px}
 button{width:100%;padding:9px;border:none;border-radius:8px;background:#f0f0f0;
@@ -193,19 +273,37 @@ button:hover{background:#e0e0e0}
 </head>
 <body>
 <div class="card">
-  <p class="lbl">Scan to call</p>
   <p class="num" id="n">${escHtml(number)}</p>
-  <img src="${qrSrc}" width="200" height="200" alt="QR code">
-  <p class="hint">Point your phone camera at this QR code</p>
-  <button id="c">Copy number</button>
+  <div class="tabs">
+    <button class="tab active" id="t-call" onclick="switchTab('call')">Call</button>
+    <button class="tab" id="t-wa" onclick="switchTab('wa')">WhatsApp</button>
+  </div>
+  <div class="pane" id="p-call">
+    <img src="${callQrSrc}" width="200" height="200" alt="QR code to call">
+    <p class="hint">Point your phone camera at this QR code</p>
+    <button id="c">Copy number</button>
+  </div>
+  <div class="pane hidden" id="p-wa">
+    <img src="${waQrSrc}" width="200" height="200" alt="QR code for WhatsApp">
+    <p class="hint">Scan to open WhatsApp and call</p>
+    <button id="w">Open WhatsApp</button>
+  </div>
 </div>
 <script>
+var WA_URL=${JSON.stringify(waUrl)};
+function switchTab(t){
+  ['call','wa'].forEach(function(id){
+    document.getElementById('t-'+id).classList.toggle('active',id===t);
+    document.getElementById('p-'+id).classList.toggle('hidden',id!==t);
+  });
+}
 document.getElementById('c').onclick=function(){
   var n=document.getElementById('n').textContent,b=this;
   navigator.clipboard.writeText(n)
     .then(function(){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy number'},2e3)})
     .catch(function(){});
 };
+document.getElementById('w').onclick=function(){window.open(WA_URL,'_blank');};
 </script>
 </body>
 </html>`;
