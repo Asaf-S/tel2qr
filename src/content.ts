@@ -1,4 +1,10 @@
 import QRCode from "qrcode";
+import {
+  parsePhoneNumberFromString,
+  getCountries,
+  getCountryCallingCode,
+  type CountryCode,
+} from "libphonenumber-js";
 
 const MODAL_ID = "tel2qr-modal";
 const STYLES_ID = "tel2qr-styles";
@@ -11,9 +17,28 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function toWhatsAppUrl(telHref: string): string {
-  const digits = telHref.replace(/^tel:/i, "").replace(/\D/g, "");
-  return `https://wa.me/${digits}`;
+function flagEmoji(code: string): string {
+  return [...code].map(c => String.fromCodePoint(c.charCodeAt(0) + 127397)).join("");
+}
+
+function buildCountryOptions(select: HTMLSelectElement): void {
+  const displayNames = new Intl.DisplayNames(["en"], { type: "region" });
+  const countries = getCountries()
+    .map(code => ({ code, name: displayNames.of(code) ?? code, dial: getCountryCallingCode(code) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Select country…";
+  placeholder.disabled = true;
+  select.appendChild(placeholder);
+
+  for (const { code, name, dial } of countries) {
+    const opt = document.createElement("option");
+    opt.value = code;
+    opt.textContent = `${flagEmoji(code)} +${dial} ${name}`;
+    select.appendChild(opt);
+  }
 }
 
 // ── Overlay modal ─────────────────────────────────────────────────────────────
@@ -48,6 +73,7 @@ function injectStyles(): void {
       gap: 16px;
       min-width: 240px;
       max-width: 320px;
+      direction: ltr;
     }
     #tel2qr-modal .tel2qr-title {
       font-size: 13px;
@@ -133,6 +159,35 @@ function injectStyles(): void {
       width: 100%;
     }
     #tel2qr-modal .tel2qr-pane.hidden { display: none; }
+    #tel2qr-modal .tel2qr-country-row {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      gap: 8px;
+    }
+    #tel2qr-modal .tel2qr-country-label {
+      font-size: 12px;
+      color: #666;
+      white-space: nowrap;
+    }
+    #tel2qr-modal .tel2qr-country-select {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: inherit;
+      background: #fff;
+      color: #111;
+      cursor: pointer;
+      min-width: 0;
+    }
+    #tel2qr-modal .tel2qr-country-select:disabled {
+      background: #f5f5f5;
+      color: #999;
+      cursor: default;
+      border-color: #e8e8e8;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -140,7 +195,12 @@ function injectStyles(): void {
 async function showModal(telHref: string): Promise<void> {
   removeModal();
   injectStyles();
-  const waUrl = toWhatsAppUrl(telHref);
+
+  const number = decodeURIComponent(telHref.replace(/^tel:/i, ""));
+  const parsed = parsePhoneNumberFromString(number);
+  const isInternational = !!parsed?.countryCallingCode;
+
+  const { defaultCountryCode = "" } = await chrome.storage.sync.get("defaultCountryCode") as { defaultCountryCode?: string };
 
   const overlay = document.createElement("div");
   overlay.id = MODAL_ID;
@@ -151,9 +211,9 @@ async function showModal(telHref: string): Promise<void> {
   const card = document.createElement("div");
   card.className = "tel2qr-card";
 
-  const number = document.createElement("p");
-  number.className = "tel2qr-number";
-  number.textContent = decodeURIComponent(telHref.replace(/^tel:/i, ""));
+  const numberEl = document.createElement("p");
+  numberEl.className = "tel2qr-number";
+  numberEl.textContent = number;
 
   // Tabs
   const tabs = document.createElement("div");
@@ -166,7 +226,7 @@ async function showModal(telHref: string): Promise<void> {
   waTab.textContent = "WhatsApp";
   tabs.append(callTab, waTab);
 
-  // Call pane
+  // ── Call pane ────────────────────────────────────────────────────────────────
   const callPane = document.createElement("div");
   callPane.className = "tel2qr-pane";
   const callCanvas = document.createElement("canvas");
@@ -186,25 +246,72 @@ async function showModal(telHref: string): Promise<void> {
   callActions.append(openBtn, closeBtn1);
   callPane.append(callCanvas, callHint, callActions);
 
-  // WhatsApp pane
-  const waPane = document.createElement("div");
-  waPane.className = "tel2qr-pane hidden";
+  // ── WhatsApp pane ─────────────────────────────────────────────────────────────
+
+  // Country selector (always visible)
+  const countryRow = document.createElement("div");
+  countryRow.className = "tel2qr-country-row";
+  const countryLabel = document.createElement("span");
+  countryLabel.className = "tel2qr-country-label";
+  countryLabel.textContent = "Country";
+  const countrySelect = document.createElement("select");
+  countrySelect.className = "tel2qr-country-select";
+  buildCountryOptions(countrySelect);
+  if (isInternational) {
+    if (parsed!.country) countrySelect.value = parsed!.country;
+    countrySelect.disabled = true;
+  } else {
+    countrySelect.value = defaultCountryCode;
+  }
+  countryRow.append(countryLabel, countrySelect);
+
+  const noCountryHint = document.createElement("p");
+  noCountryHint.className = "tel2qr-hint";
+  noCountryHint.textContent = "Select a country code to generate QR";
+
   const waCanvas = document.createElement("canvas");
   const waHint = document.createElement("p");
   waHint.className = "tel2qr-hint";
   waHint.textContent = "Scan to open WhatsApp and call";
+
   const waActions = document.createElement("div");
   waActions.className = "tel2qr-actions";
   const waOpenBtn = document.createElement("button");
   waOpenBtn.className = "tel2qr-btn tel2qr-btn-secondary";
   waOpenBtn.textContent = "Open WhatsApp";
-  waOpenBtn.addEventListener("click", () => { removeModal(); window.open(waUrl, "_blank"); });
   const closeBtn2 = document.createElement("button");
   closeBtn2.className = "tel2qr-btn tel2qr-btn-primary";
   closeBtn2.textContent = "Close";
   closeBtn2.addEventListener("click", removeModal);
   waActions.append(waOpenBtn, closeBtn2);
-  waPane.append(waCanvas, waHint, waActions);
+
+  const waPane = document.createElement("div");
+  waPane.className = "tel2qr-pane hidden";
+  waPane.append(countryRow, noCountryHint, waCanvas, waHint, waActions);
+
+  async function renderWaQr(): Promise<void> {
+    const countryCode = (isInternational ? parsed!.country : countrySelect.value) as CountryCode | undefined;
+
+    if (!countryCode) {
+      noCountryHint.style.display = "";
+      waCanvas.style.display = "none";
+      waHint.style.display = "none";
+      return;
+    }
+
+    noCountryHint.style.display = "none";
+    waCanvas.style.display = "";
+    waHint.style.display = "";
+
+    const waUrl = isInternational
+      ? `https://wa.me/${number.replace(/\D/g, "")}`
+      : `https://wa.me/${getCountryCallingCode(countryCode)}${number.replace(/\D/g, "")}`;
+
+    await QRCode.toCanvas(waCanvas, waUrl, { width: 200, margin: 2, color: { dark: "#128C7E", light: "#ffffff" } });
+    waOpenBtn.onclick = () => { removeModal(); window.open(waUrl, "_blank"); };
+  }
+
+  countrySelect.addEventListener("change", () => void renderWaQr());
 
   // Tab switching
   callTab.addEventListener("click", () => {
@@ -216,7 +323,7 @@ async function showModal(telHref: string): Promise<void> {
     waPane.classList.remove("hidden"); callPane.classList.add("hidden");
   });
 
-  card.append(number, tabs, callPane, waPane);
+  card.append(numberEl, tabs, callPane, waPane);
   overlay.appendChild(card);
   document.body.appendChild(overlay);
 
@@ -226,92 +333,15 @@ async function showModal(telHref: string): Promise<void> {
 
   await Promise.all([
     QRCode.toCanvas(callCanvas, telHref, { width: 200, margin: 2, color: { dark: "#111111", light: "#ffffff" } }),
-    QRCode.toCanvas(waCanvas, waUrl, { width: 200, margin: 2, color: { dark: "#128C7E", light: "#ffffff" } }),
+    renderWaQr(),
   ]);
 }
 
-// ── New-tab: data URL page ────────────────────────────────────────────────────
+// ── New-tab ───────────────────────────────────────────────────────────────────
 
-function escHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-async function openInNewTab(href: string): Promise<void> {
-  const number = decodeURIComponent(href.replace(/^tel:/i, ""));
-  const waUrl = toWhatsAppUrl(href);
-
-  const [callQrSrc, waQrSrc] = await Promise.all([
-    QRCode.toDataURL(href, { width: 200, margin: 2, color: { dark: "#111111", light: "#ffffff" } }),
-    QRCode.toDataURL(waUrl, { width: 200, margin: 2, color: { dark: "#128C7E", light: "#ffffff" } }),
-  ]);
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tel2QR — ${escHtml(number)}</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{min-height:100vh;display:flex;align-items:center;justify-content:center;
-     background:#f5f5f7;font-family:system-ui,sans-serif;padding:24px}
-.card{background:#fff;border-radius:20px;padding:32px 28px 24px;
-      box-shadow:0 8px 40px rgba(0,0,0,.12);display:flex;flex-direction:column;
-      align-items:center;gap:14px;max-width:300px;width:100%;text-align:center}
-.num{font-size:22px;font-weight:700;color:#111;word-break:break-all}
-.tabs{display:flex;width:100%;gap:4px;background:#f0f0f0;border-radius:8px;padding:3px}
-.tab{flex:1;padding:6px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#666;transition:all .15s}
-.tab.active{background:#fff;color:#111;box-shadow:0 1px 3px rgba(0,0,0,.15)}
-.pane{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
-.pane.hidden{display:none}
-.hint{font-size:12px;color:#888}
-img{border-radius:8px}
-button{width:100%;padding:9px;border:none;border-radius:8px;background:#f0f0f0;
-       color:#333;font-size:13px;font-weight:600;cursor:pointer}
-button:hover{background:#e0e0e0}
-</style>
-</head>
-<body>
-<div class="card">
-  <p class="num" id="n">${escHtml(number)}</p>
-  <div class="tabs">
-    <button class="tab active" id="t-call" onclick="switchTab('call')">Call</button>
-    <button class="tab" id="t-wa" onclick="switchTab('wa')">WhatsApp</button>
-  </div>
-  <div class="pane" id="p-call">
-    <img src="${callQrSrc}" width="200" height="200" alt="QR code to call">
-    <p class="hint">Point your phone camera at this QR code</p>
-    <button id="c">Copy number</button>
-  </div>
-  <div class="pane hidden" id="p-wa">
-    <img src="${waQrSrc}" width="200" height="200" alt="QR code for WhatsApp">
-    <p class="hint">Scan to open WhatsApp and call</p>
-    <button id="w">Open WhatsApp</button>
-  </div>
-</div>
-<script>
-var WA_URL=${JSON.stringify(waUrl)};
-function switchTab(t){
-  ['call','wa'].forEach(function(id){
-    document.getElementById('t-'+id).classList.toggle('active',id===t);
-    document.getElementById('p-'+id).classList.toggle('hidden',id!==t);
-  });
-}
-document.getElementById('c').onclick=function(){
-  var n=document.getElementById('n').textContent,b=this;
-  navigator.clipboard.writeText(n)
-    .then(function(){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy number'},2e3)})
-    .catch(function(){});
-};
-document.getElementById('w').onclick=function(){window.open(WA_URL,'_blank');};
-</script>
-</body>
-</html>`;
-
-  void chrome.runtime.sendMessage({
-    type: "open-tab",
-    url: `data:text/html;charset=utf-8,${encodeURIComponent(html)}`,
-  });
+function openInNewTab(href: string): void {
+  const url = chrome.runtime.getURL(`handler.html?tel=${encodeURIComponent(href)}`);
+  void chrome.runtime.sendMessage({ type: "open-tab", url });
 }
 
 // ── Click handler ─────────────────────────────────────────────────────────────
@@ -331,7 +361,7 @@ document.addEventListener(
     if (method === "extension-popup") {
       void chrome.runtime.sendMessage({ type: "open-popup", tel: href });
     } else if (method === "new-tab" || method === "github-pages") {
-      void openInNewTab(href);
+      openInNewTab(href);
     } else {
       void showModal(href);
     }

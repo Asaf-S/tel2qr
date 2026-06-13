@@ -8,8 +8,8 @@
     "typecheck": "tsc --noEmit",
     "test": "npm run build && playwright test",
     "test:debug": "npm run build && node --inspect-brk ./node_modules/.bin/playwright test --timeout=0",
-    "package": "npm run build && mkdir -p releases && zip -r releases/tel2qr-v$(node -p \"require('./package.json').version\").zip manifest.json dist/ icons/ popup.html handler.html",
-    "upload": "dotenv -e .env -- chrome-webstore-upload upload --source releases/tel2qr-v$(node -p \"require('./package.json').version\").zip",
+    "package": "npm run build && mkdir -p releases && zip -r releases/tel2qr-v$(node -p \"require('./manifest.json').version\").zip manifest.json dist/ icons/ popup.html handler.html",
+    "upload": "dotenv -e .env -- chrome-webstore-upload upload --source releases/tel2qr-v$(node -p \"require('./manifest.json').version\").zip",
     "release": "npm run package && npm run upload"
   },
   "repository": {
@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/Asaf-S/tel2qr#readme",
   "dependencies": {
+    "libphonenumber-js": "^1.13.6",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {

@@ -56,6 +56,44 @@
     .option-title { font-size: 13px; font-weight: 600; }
     .option-desc  { font-size: 11px; color: #888; line-height: 1.4; }
 
+    .divider {
+      border: none;
+      border-top: 1px solid #f0f0f0;
+      margin: 12px 0 14px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #444;
+      margin-bottom: 6px;
+    }
+
+    .country-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .country-label {
+      font-size: 12px;
+      color: #666;
+      white-space: nowrap;
+    }
+
+    .country-select {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: inherit;
+      background: #fff;
+      color: #111;
+      cursor: pointer;
+      min-width: 0;
+    }
+
     .saved {
       font-size: 11px;
       color: #1a73e8;
@@ -80,37 +118,48 @@
 </head>
 <body>
   <p class="brand">Tel2QR</p>
-  <p class="label">When a tel: link is clicked, open it as:</p>
 
   <div id="spinner" class="spinner"></div>
 
-  <div class="options" id="options" style="display:none">
-    <label>
-      <input type="radio" name="method" value="overlay">
-      <div class="option-text">
-        <span class="option-title">Overlay</span>
-        <span class="option-desc">QR code appears over the current page</span>
-      </div>
-    </label>
+  <div id="main" style="display:none">
+    <p class="label">When a tel: link is clicked, open it as:</p>
 
-    <label>
-      <input type="radio" name="method" value="extension-popup">
-      <div class="option-text">
-        <span class="option-title">Extension popup</span>
-        <span class="option-desc">QR code opens in a small floating window</span>
-      </div>
-    </label>
+    <div class="options" id="options">
+      <label>
+        <input type="radio" name="method" value="overlay">
+        <div class="option-text">
+          <span class="option-title">Overlay</span>
+          <span class="option-desc">QR code appears over the current page</span>
+        </div>
+      </label>
 
-    <label>
-      <input type="radio" name="method" value="new-tab">
-      <div class="option-text">
-        <span class="option-title">New tab</span>
-        <span class="option-desc">Opens a self-contained QR page in a new tab</span>
-      </div>
-    </label>
-  </div><!-- #options -->
+      <label>
+        <input type="radio" name="method" value="extension-popup">
+        <div class="option-text">
+          <span class="option-title">Extension popup</span>
+          <span class="option-desc">QR code opens in a small floating window</span>
+        </div>
+      </label>
 
-  <p class="saved" id="saved">✓ Saved</p>
+      <label>
+        <input type="radio" name="method" value="new-tab">
+        <div class="option-text">
+          <span class="option-title">New tab</span>
+          <span class="option-desc">Opens a self-contained QR page in a new tab</span>
+        </div>
+      </label>
+    </div>
+
+    <hr class="divider">
+
+    <p class="section-title">WhatsApp</p>
+    <div class="country-row">
+      <span class="country-label">Default country</span>
+      <select class="country-select" id="country-select"></select>
+    </div>
+
+    <p class="saved" id="saved">✓ Saved</p>
+  </div>
 
   <script src="dist/popup.js"></script>
 </body>
